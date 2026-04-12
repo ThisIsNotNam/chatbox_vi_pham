@@ -1,0 +1,38 @@
+{% extends 'violations/base.html' %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-12 col-lg-8">
+        <div class="card border-0 shadow-sm">
+            <div class="card-body p-4">
+                <h4 class="mb-3">Edit Incident</h4>
+                <form method="post" enctype="multipart/form-data" class="row g-3">
+                    {% csrf_token %}
+                    <div class="col-md-3">
+                        <label for="id_sbd" class="form-label">SBD</label>
+                        {{ form.sbd }}
+                    </div>
+                    <div class="col-md-9">
+                        <label for="id_violation_text" class="form-label">Violation Content</label>
+                        {{ form.violation_text }}
+                    </div>
+                    <div class="col-md-8">
+                        <label for="id_evidence" class="form-label">Replace Image/Video (optional)</label>
+                        {{ form.evidence }}
+                    </div>
+                    <div class="col-md-4 d-flex align-items-end">
+                        <div class="form-check">
+                            {{ form.remove_evidence }}
+                            <label class="form-check-label" for="id_remove_evidence">Remove existing evidence</label>
+                        </div>
+                    </div>
+                    <div class="col-12 d-flex gap-2 justify-content-end">
+                        <a href="{% url 'violations:dashboard' %}" class="btn btn-outline-secondary">Cancel</a>
+                        <button class="btn btn-dark" type="submit">Save Changes</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

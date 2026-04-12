@@ -1,0 +1,8 @@
+{% if incidents %}
+    {% include 'violations/_incident_rows.html' %}
+{% else %}
+    <div class="empty-state text-center py-5">
+        <i class="bi bi-inbox display-6"></i>
+        <p class="mb-0 mt-2">No incidents posted yet.</p>
+    </div>
+{% endif %}

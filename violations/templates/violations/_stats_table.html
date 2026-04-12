@@ -1,0 +1,62 @@
+<div class="table-responsive">
+    <table class="table align-middle stats-table mb-0">
+        <thead>
+            <tr>
+                <th>SBD</th>
+                <th>Candidate</th>
+                <th>School</th>
+                <th>Room</th>
+                <th>Supervisor</th>
+                <th>Total Violations</th>
+                <th>Latest</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for row in candidate_stats %}
+                <tr>
+                    <td>
+                        <button class="btn btn-link p-0 fw-semibold text-decoration-none js-open-candidate-detail" data-sbd="{{ row.sbd }}">
+                            {{ row.sbd }}
+                        </button>
+                    </td>
+                    <td>{{ row.full_name }}</td>
+                    <td>{{ row.school }}</td>
+                    <td>{{ row.exam_room|default:"-" }}</td>
+                    <td>{{ row.supervisor_teacher }}</td>
+                    <td><span class="badge text-bg-warning">{{ row.total_violations }}</span></td>
+                    <td>{{ row.last_violation_at|date:"Y-m-d H:i" }}</td>
+                </tr>
+            {% empty %}
+                <tr>
+                    <td colspan="7" class="text-center text-muted py-4">No statistics yet.</td>
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+{% if unknown_stats %}
+    <div class="mt-4">
+        <h6 class="mb-3">Unmatched SBD Entries</h6>
+        <div class="table-responsive">
+            <table class="table align-middle table-sm mb-0">
+                <thead>
+                    <tr>
+                        <th>SBD</th>
+                        <th>Total Violations</th>
+                        <th>Latest</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for row in unknown_stats %}
+                        <tr>
+                            <td>{{ row.sbd_snapshot }}</td>
+                            <td>{{ row.total_violations }}</td>
+                            <td>{{ row.last_violation_at|date:"Y-m-d H:i" }}</td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+{% endif %}

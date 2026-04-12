@@ -1,0 +1,29 @@
+{% extends 'violations/base.html' %}
+
+{% block content %}
+<div class="row justify-content-center py-5">
+    <div class="col-12 col-md-6 col-lg-4">
+        <div class="card border-0 shadow-sm">
+            <div class="card-body p-4">
+                <h4 class="mb-3">Admin Login</h4>
+                <form method="post" class="vstack gap-3">
+                    {% csrf_token %}
+                    {{ form.non_field_errors }}
+                    <div>
+                        <label for="id_username" class="form-label">Username</label>
+                        {{ form.username }}
+                    </div>
+                    <div>
+                        <label for="id_password" class="form-label">Password</label>
+                        {{ form.password }}
+                    </div>
+                    <button type="submit" class="btn btn-dark">Login</button>
+                </form>
+                <p class="small text-muted mt-3 mb-0">
+                    Candidate and viewer accounts can open the dashboard without login.
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

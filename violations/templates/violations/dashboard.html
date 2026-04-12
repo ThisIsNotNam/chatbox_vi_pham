@@ -1,0 +1,147 @@
+{% extends 'violations/base.html' %}
+
+{% block content %}
+<div class="row g-4 align-items-stretch">
+    <div class="col-12">
+        <div class="shell-panel p-2 p-md-3">
+            <ul class="nav nav-pills nav-fill panel-tabs" id="monitor-tabs" role="tablist">
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link active" id="chat-tab" data-bs-toggle="pill" data-bs-target="#chat-pane" type="button" role="tab" aria-controls="chat-pane" aria-selected="true">
+                        Chat Box
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="stats-tab" data-bs-toggle="pill" data-bs-target="#stats-pane" type="button" role="tab" aria-controls="stats-pane" aria-selected="false">
+                        Statistics
+                    </button>
+                </li>
+            </ul>
+
+            <div class="tab-content mt-3" id="monitor-tabs-content" data-ws-path="/ws/live/" data-history-url="{% url 'violations:incident_history' %}" data-updates-url="{% url 'violations:incident_updates' %}">
+                <section class="tab-pane fade show active" id="chat-pane" role="tabpanel" aria-labelledby="chat-tab">
+                    <div class="row g-3">
+                        <div class="col-12">
+                            <div class="live-header d-flex justify-content-between align-items-center mb-2">
+                                <h5 class="mb-0">Live Incident Feed</h5>
+                                <small class="text-muted" id="live-connection-status">Connecting websocket...</small>
+                            </div>
+                            <div class="card border-0 shadow-sm">
+                                <div class="card-body p-2 p-md-3">
+                                    <div id="incident-feed" class="incident-feed">
+                                        <div id="incident-top-status" class="incident-top-status text-center small text-muted"></div>
+                                        <div id="incident-list-container" data-oldest-id="{{ oldest_incident_id|default:'' }}" data-newest-id="{{ newest_incident_id|default:'' }}" data-has-older="{{ has_older|yesno:'1,0' }}">
+                                            {% include 'violations/_incident_list.html' %}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="col-12">
+                            <div class="card border-0 shadow-sm">
+                                <div class="card-body">
+                                    {% if can_post %}
+                                        <form method="post" action="{% url 'violations:create_incident' %}" enctype="multipart/form-data" class="row g-2 align-items-start">
+                                            {% csrf_token %}
+                                            <div class="col-12 col-md-2">
+                                                <label class="form-label small mb-1" for="id_sbd">SBD</label>
+                                                <input type="text" name="sbd" id="id_sbd" class="form-control" placeholder="TS0032" required>
+                                            </div>
+                                            <div class="col-12 col-md-6">
+                                                <label class="form-label small mb-1" for="id_violation_text">Violation Content</label>
+                                                <textarea name="violation_text" id="id_violation_text" class="form-control" rows="2" placeholder="Example: TS0032 exchanged messages with TS0030" required></textarea>
+                                            </div>
+                                            <div class="col-12 col-md-3">
+                                                <label class="form-label small mb-1" for="id_evidence">Image/Video</label>
+                                                <input type="file" name="evidence" id="id_evidence" class="form-control" accept="image/*,video/*">
+                                            </div>
+                                            <div class="col-12 col-md-1 d-grid">
+                                                <label class="form-label small mb-1 d-none d-md-block">&nbsp;</label>
+                                                <button class="btn btn-dark" type="submit">
+                                                    <i class="bi bi-send"></i>
+                                                </button>
+                                            </div>
+                                        </form>
+                                        <p class="text-muted small mt-2 mb-0">
+                                            If a violation message references another SBD, both candidates are automatically counted in statistics.
+                                        </p>
+                                    {% else %}
+                                        <div class="alert alert-secondary mb-0">
+                                            This account can view data only. Posting/editing is allowed only for room admins and super admins.
+                                        </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <section class="tab-pane fade" id="stats-pane" role="tabpanel" aria-labelledby="stats-tab">
+                    <div class="row g-3">
+                        {% if can_import_candidates %}
+                            <div class="col-12">
+                                <div class="card border-0 shadow-sm">
+                                    <div class="card-body">
+                                        <h6 class="mb-2">Import Candidate List (CSV)</h6>
+                                        <form method="post" action="{% url 'violations:import_candidates' %}" enctype="multipart/form-data" class="row g-2 align-items-end">
+                                            {% csrf_token %}
+                                            <div class="col-12 col-md-8">
+                                                <label class="form-label small mb-1" for="id_csv_file">CSV File</label>
+                                                <input type="file" name="csv_file" id="id_csv_file" class="form-control" accept=".csv" required>
+                                            </div>
+                                            <div class="col-12 col-md-4 d-grid">
+                                                <button class="btn btn-outline-dark" type="submit">
+                                                    <i class="bi bi-upload me-1"></i>Import / Update Candidates
+                                                </button>
+                                            </div>
+                                        </form>
+                                        <p class="small text-muted mt-2 mb-0">
+                                            Suggested headers: SBD, Họ và tên, Trường, GVPT, Phòng thi.
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+                        {% endif %}
+
+                        <div class="col-12">
+                            <div class="card border-0 shadow-sm">
+                                <div class="card-body">
+                                    <div class="d-flex justify-content-between align-items-center mb-3">
+                                        <h5 class="mb-0">Violation Statistics</h5>
+                                        <small class="text-muted">Click an SBD to view full detail</small>
+                                    </div>
+                                    <div id="stats-table-container">
+                                        {% include 'violations/_stats_table.html' %}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="offcanvas offcanvas-end candidate-offcanvas" tabindex="-1" id="candidateDetailCanvas" aria-labelledby="candidateDetailLabel">
+    <div class="offcanvas-header border-bottom">
+        <h5 class="offcanvas-title" id="candidateDetailLabel">Candidate Detail</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Close"></button>
+    </div>
+    <div class="offcanvas-body" id="candidate-detail-content">
+        <div class="text-center py-4 text-muted">Select a candidate from statistics.</div>
+    </div>
+</div>
+
+<div class="modal fade" id="evidencePreviewModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Evidence Preview</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body text-center" id="evidence-preview-body"></div>
+        </div>
+    </div>
+</div>
+{% endblock %}

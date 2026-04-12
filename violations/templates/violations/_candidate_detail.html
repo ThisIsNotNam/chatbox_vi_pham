@@ -1,0 +1,50 @@
+<div class="candidate-detail-shell">
+    {% if candidate %}
+        <div class="row g-3 mb-3">
+            <div class="col-6">
+                <div class="detail-label">SBD</div>
+                <div class="detail-value">{{ candidate.sbd }}</div>
+            </div>
+            <div class="col-6">
+                <div class="detail-label">Full Name</div>
+                <div class="detail-value">{{ candidate.full_name }}</div>
+            </div>
+            <div class="col-6">
+                <div class="detail-label">School</div>
+                <div class="detail-value">{{ candidate.school }}</div>
+            </div>
+            <div class="col-6">
+                <div class="detail-label">Room</div>
+                <div class="detail-value">{{ candidate.exam_room|default:"-" }}</div>
+            </div>
+            <div class="col-12">
+                <div class="detail-label">Supervisor Teacher</div>
+                <div class="detail-value">{{ candidate.supervisor_teacher }}</div>
+            </div>
+        </div>
+    {% else %}
+        <div class="alert alert-warning">Candidate profile for {{ sbd }} was not found in the imported list.</div>
+    {% endif %}
+
+    <h6 class="mb-3">Incident Timeline</h6>
+    {% for incident in incidents %}
+        <article class="incident-mini mb-3 p-3">
+            <div class="d-flex justify-content-between align-items-center mb-2">
+                <span class="badge text-bg-danger">{{ incident.reported_sbd }}</span>
+                <small class="text-muted">{{ incident.created_at|date:"Y-m-d H:i" }}</small>
+            </div>
+            <p class="mb-2">{{ incident.violation_text }}</p>
+            {% if incident.evidence %}
+                {% if incident.evidence_is_image %}
+                    <img src="{% url 'violations:incident_evidence' incident.pk %}" class="img-fluid rounded evidence-guard" alt="Evidence" draggable="false">
+                {% elif incident.evidence_is_video %}
+                    <video class="w-100 rounded evidence-guard" controls controlsList="nodownload noplaybackrate" disablePictureInPicture preload="metadata" oncontextmenu="return false">
+                        <source src="{% url 'violations:incident_evidence' incident.pk %}">
+                    </video>
+                {% endif %}
+            {% endif %}
+        </article>
+    {% empty %}
+        <p class="text-muted">No incidents available.</p>
+    {% endfor %}
+</div>
