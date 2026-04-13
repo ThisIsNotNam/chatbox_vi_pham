@@ -144,11 +144,36 @@ body {
 
 .evidence-wrap img,
 .evidence-wrap video {
+    display: block;
+    width: auto;
+    max-width: 100%;
+    height: auto;
     max-height: 280px;
-    object-fit: cover;
+    object-fit: contain;
     cursor: zoom-in;
     user-select: none;
     -webkit-user-drag: none;
+}
+
+.candidate-detail-shell img,
+.candidate-detail-shell video {
+    display: block;
+    width: auto;
+    max-width: 100%;
+    height: auto;
+    max-height: 320px;
+    object-fit: contain;
+}
+
+#evidence-preview-body img,
+#evidence-preview-body video {
+    display: block;
+    width: auto;
+    max-width: 100%;
+    height: auto;
+    max-height: 72vh;
+    margin: 0 auto;
+    object-fit: contain;
 }
 
 .stats-table thead th {
