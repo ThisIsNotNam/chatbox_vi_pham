@@ -2,6 +2,7 @@ import re
 from collections import OrderedDict
 
 from django.db import transaction
+from django.db.models.functions import Upper
 
 from .models import Candidate, IncidentParticipant
 
@@ -30,8 +31,10 @@ def sync_incident_references(incident, primary_sbd, violation_text):
             ordered_codes.append(code)
 
     candidates = {
-        candidate.sbd: candidate
-        for candidate in Candidate.objects.filter(sbd__in=ordered_codes)
+        candidate.normalized_sbd: candidate
+        for candidate in Candidate.objects.annotate(
+            normalized_sbd=Upper("sbd")
+        ).filter(normalized_sbd__in=ordered_codes)
     }
 
     incident.reported_sbd = primary_sbd

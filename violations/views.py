@@ -199,9 +199,9 @@ def edit_incident(request, pk):
 @require_GET
 def candidate_detail(request, sbd):
     normalized_sbd = normalize_sbd(sbd)
-    candidate = Candidate.objects.filter(sbd=normalized_sbd).first()
+    candidate = Candidate.objects.filter(sbd__iexact=normalized_sbd).first()
     incidents = Incident.objects.filter(
-        participants__sbd_snapshot=normalized_sbd
+        participants__sbd_snapshot__iexact=normalized_sbd
     ).select_related("created_by").distinct().order_by("-created_at")
 
     context = {

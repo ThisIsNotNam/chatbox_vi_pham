@@ -120,6 +120,11 @@ body {
     word-break: break-word;
 }
 
+.recognized-id {
+    color: var(--brand-warm);
+    font-weight: 700;
+}
+
 .incident-feed {
     height: clamp(15rem, calc(100dvh - 28rem), 31rem);
     overflow-y: auto;

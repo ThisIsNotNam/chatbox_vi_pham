@@ -1,3 +1,4 @@
+{% load violations_extras %}
 <div class="candidate-detail-shell">
     {% if candidate %}
         <div class="row g-3 mb-3">
@@ -30,10 +31,10 @@
     {% for incident in incidents %}
         <article class="incident-mini mb-3 p-3">
             <div class="d-flex justify-content-between align-items-center mb-2">
-                <span class="badge text-bg-danger">{{ incident.reported_sbd }}</span>
+                <span class="badge text-bg-danger">{{ incident.reported_sbd|upper }}</span>
                 <small class="text-muted">{{ incident.created_at|date:"Y-m-d H:i" }}</small>
             </div>
-            <p class="mb-2">{{ incident.violation_text }}</p>
+            <p class="mb-2">{{ incident.violation_text|highlight_ids }}</p>
             {% if incident.evidence %}
                 {% if incident.evidence_is_image %}
                     <img src="{% url 'violations:incident_evidence' incident.pk %}" class="img-fluid rounded evidence-guard" alt="Evidence" draggable="false">

@@ -1,4 +1,5 @@
 from django.db.models import Count, Max, OuterRef, Subquery
+from django.db.models.functions import Upper
 from django.template.loader import render_to_string
 from django.utils import timezone
 
@@ -21,12 +22,13 @@ def build_candidate_stats():
 
     unknown_stats = (
         IncidentParticipant.objects.filter(candidate__isnull=True)
-        .values("sbd_snapshot")
+        .annotate(normalized_sbd=Upper("sbd_snapshot"))
+        .values("normalized_sbd")
         .annotate(
             total_violations=Count("incident", distinct=True),
             last_violation_at=Max("incident__created_at"),
         )
-        .order_by("-total_violations", "sbd_snapshot")
+        .order_by("-total_violations", "normalized_sbd")
     )
     return stats, unknown_stats
 
