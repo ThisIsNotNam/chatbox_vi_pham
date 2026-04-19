@@ -21,15 +21,20 @@ from .realtime import (
     build_candidate_stats,
     build_live_payload,
     build_stats_payload,
+    can_delete_incidents,
     fetch_incidents_page,
     get_editable_incident_ids,
     render_incident_rows_html,
 )
 from .services import (
+    MAX_SBD_LENGTH,
+    MAX_VIOLATION_TEXT_LEN,
     ROLE_LABELS,
     ROLE_ROOM_ADMIN,
     ROLE_SUPER_ADMIN,
     ROLE_VIEWER,
+    apply_default_prefix,
+    is_valid_sbd_syntax,
     normalize_sbd,
     sync_incident_references,
 )
@@ -98,6 +103,7 @@ def get_dashboard_context(request):
     return {
         "incidents": incidents,
         "editable_incident_ids": editable_ids,
+        "can_delete_incidents": can_delete_incidents(request.user),
         "current_user_id": request.user.id if request.user.is_authenticated else None,
         "oldest_incident_id": oldest_id,
         "newest_incident_id": newest_id,
@@ -145,6 +151,8 @@ def create_incident(request):
 
     raw_sbd = (request.POST.get("sbd") or "").strip()
     if not is_valid_sbd_syntax(raw_sbd):
+        if is_ajax_request(request):
+            return JsonResponse({"ok": False, "error": "SBD is invalid."}, status=400)
         messages.error(request, "SBD không hợp lệ: chỉ dùng chữ cái tiếng Anh và chữ số.")
         return redirect("violations:dashboard")
 
@@ -185,11 +193,21 @@ def create_incident(request):
         primary_sbd=form.cleaned_data["sbd"],
         violation_text=form.cleaned_data["violation_text"],
     )
-    _surface_truncation_warnings(request, sync_info)
     notify_live_update()
 
     if is_ajax_request(request):
-        return JsonResponse({"ok": True})
+        payload = build_stats_payload()
+        payload.update(
+            {
+                "ok": True,
+                "incident_html": render_incident_rows_html([incident], request.user),
+                "incident_id": incident.id,
+                "newest_id": incident.id,
+            }
+        )
+        return JsonResponse(payload)
+
+    _surface_truncation_warnings(request, sync_info)
 
     messages.success(request, "Incident posted successfully.")
     return redirect("violations:dashboard")
@@ -271,6 +289,27 @@ def edit_incident(request, pk):
     )
 
 
+@require_POST
+@login_required
+def delete_incident(request, pk):
+    if not can_delete_incidents(request.user):
+        if is_ajax_request(request):
+            return JsonResponse({"error": "You do not have permission to delete incidents."}, status=403)
+        return HttpResponseForbidden("You do not have permission to delete incidents.")
+
+    incident = get_object_or_404(Incident, pk=pk)
+    if incident.evidence:
+        incident.evidence.delete(save=False)
+    incident.delete()
+    notify_live_update()
+
+    if is_ajax_request(request):
+        return JsonResponse({"ok": True, "incident_id": pk})
+
+    messages.success(request, "Message deleted successfully.")
+    return redirect("violations:dashboard")
+
+
 # ── Candidate detail ──────────────────────────────────────────────────────────
 
 @require_GET
@@ -278,7 +317,6 @@ def candidate_detail(request, sbd):
     if len(sbd) > _MAX_SBD_URL_LEN or not is_valid_sbd_syntax(sbd):
         raise Http404("Invalid SBD.")
 
-    from .services import apply_default_prefix
     normalized_sbd, _ = apply_default_prefix(sbd)
     candidate = Candidate.objects.filter(sbd__iexact=normalized_sbd).first()
     incidents = (
@@ -321,7 +359,6 @@ def candidate_search(request):
         qs = Candidate.objects.all().order_by("sbd")[:20]
     else:
         if q.isdigit():
-            from .services import apply_default_prefix
             canonical, _ = apply_default_prefix(q)
             qs = Candidate.objects.filter(
                 models.Q(sbd__icontains=q) | models.Q(sbd__icontains=canonical)
@@ -431,7 +468,6 @@ def import_candidates(request):
         raw_sbd = row_value(row, ["sbd", "sobaodanh"])
         if not raw_sbd:
             continue
-        from .services import apply_default_prefix
         sbd, was_truncated = apply_default_prefix(raw_sbd)
         if not sbd or not is_valid_sbd_syntax(sbd):
             continue
@@ -522,19 +558,10 @@ def incident_preview(request):
     if len(raw_text) > MAX_VIOLATION_TEXT_LEN:
         raw_text = raw_text[:MAX_VIOLATION_TEXT_LEN]
 
-    from .services import MENTION_TOKEN_PATTERN, SBD_PATTERN, apply_default_prefix
-
     if raw_sbd and is_valid_sbd_syntax(raw_sbd):
         sbd, _ = apply_default_prefix(raw_sbd)
     else:
         sbd = raw_sbd.upper()[:9]
-
-    def _canon(m):
-        canon, _ = apply_default_prefix(m.group(1))
-        if SBD_PATTERN.match(canon):
-            return "@{" + canon + "}"
-        return m.group(0)
-    raw_text = MENTION_TOKEN_PATTERN.sub(_canon, raw_text)
 
     candidate = (
         Candidate.objects.filter(sbd__iexact=sbd).first() if sbd else None

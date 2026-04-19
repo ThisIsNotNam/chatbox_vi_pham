@@ -7,7 +7,15 @@ from django.db.models.functions import Upper
 
 from .models import Candidate, IncidentParticipant, RoomAdminProfile
 
+MAX_SBD_LENGTH = 9
+MAX_VIOLATION_TEXT_LEN = 2000
+
+_SBD_SYNTAX_RE = re.compile(rf"^[A-Za-z0-9]{{1,{MAX_SBD_LENGTH}}}$")
 SBD_PATTERN = re.compile(r"\b[Tt][Ss]\d{4}\b")
+SBD_TEXT_PATTERN = SBD_PATTERN
+# Kept for backwards compatibility with older call-sites.
+MENTION_TOKEN_PATTERN = re.compile(r"@\{([A-Za-z0-9]{1,9})\}")
+
 ROLE_SUPER_ADMIN = "super_admin"
 ROLE_ROOM_ADMIN = "room_admin"
 ROLE_VIEWER = "viewer"
@@ -20,83 +28,51 @@ ROLE_LABELS = dict(ROLE_CHOICES)
 
 
 def normalize_sbd(value):
-    """Uppercase + strip whitespace. Does NOT apply the prefix; callers
-    that accept raw user input should use apply_default_prefix afterwards.
-    """
     return (value or "").upper().strip()
 
 
 def apply_default_prefix(value):
-    """Attach settings.SBD_DEFAULT_PREFIX when the input is digits-only.
+    """Apply a default TS prefix for digits-only input.
 
-    Returns (canonical_sbd, was_truncated) so the caller can surface a
-    warning when a long digits-only input overflowed the 9-char cap and
-    the trailing digit(s) were dropped.
-
-    Rules:
-      • Empty input → ("", False).
-      • All digits, length ≤ MAX_SBD_LENGTH - len(prefix)
-                   → (prefix + input, False).
-      • All digits, length > that room
-                   → (prefix + input[:room], True).  # lossy truncate
-      • Has ≥1 letter → (input, False). User supplied their own prefix.
-
-    Examples with prefix 'TS' (room = 7):
-      "0032"     → ("TS0032", False)
-      "1234567"  → ("TS1234567", False)
-      "12345678" → ("TS1234567", True)   trailing digit dropped
-      "CT0032"   → ("CT0032", False)
-      ""         → ("", False)
+    Returns a tuple of (canonical_sbd, was_truncated).
     """
-    from django.conf import settings
     norm = normalize_sbd(value)
     if not norm:
         return "", False
+
     if norm.isdigit():
-        prefix = getattr(settings, "SBD_DEFAULT_PREFIX", "TS")
+        prefix = "TS"
         room = MAX_SBD_LENGTH - len(prefix)
+        if room < 1:
+            return prefix[:MAX_SBD_LENGTH], True
         truncated = len(norm) > room
         if truncated:
             norm = norm[:room]
         return prefix + norm, truncated
+
     return norm, False
 
 
 def normalize_and_prefix_sbd(value):
-    """Thin wrapper that discards the truncation flag. Use apply_default_prefix
-    directly when you need to surface a warning to the user."""
     canonical, _ = apply_default_prefix(value)
     return canonical
 
 
 def is_valid_sbd_syntax(value):
-    """Return True if value is a syntactically valid SBD (Latin letters + digits only,
-    1–20 chars, no spaces or special characters).
-    """
+    """Validate user-entered SBD syntax (latin letters/digits only, 1..9 chars)."""
     return bool(_SBD_SYNTAX_RE.match((value or "").strip()))
 
 
 def extract_sbd_codes(text):
-    """Extract SBD codes that should be tracked as incident participants.
+    """Extract tracked SBDs from plain text.
 
-    Only explicit @{SBD} tokens count. Each token is run through
-    apply_default_prefix so '@{0032}' and '@{TS0032}' are treated as the
-    same SBD. The result from apply_default_prefix must still match the
-    full SBD_PATTERN to be accepted as a valid participant.
-
-    Returns (ordered_codes, truncated_originals). truncated_originals is
-    the set of raw token contents whose trailing digits were dropped by
-    the length cap (so the caller can warn the user).
+    Quick-fixes priority: we only track canonical bare SBD tokens (e.g. TS0032)
+    and intentionally ignore hoang's @{SBD} tagging semantics.
     """
     ordered = OrderedDict()
-    truncated_originals = set()
-    for raw in MENTION_TOKEN_PATTERN.findall(text or ""):
-        canonical, was_truncated = apply_default_prefix(raw)
-        if SBD_PATTERN.match(canonical):
-            ordered[canonical] = True
-            if was_truncated:
-                truncated_originals.add(raw)
-    return list(ordered.keys()), truncated_originals
+    for code in SBD_TEXT_PATTERN.findall(text or ""):
+        ordered[normalize_sbd(code)] = True
+    return list(ordered.keys())
 
 
 def normalize_room_name(value):
@@ -156,35 +132,14 @@ def apply_user_role(user, role, room_name=""):
 
 @transaction.atomic
 def sync_incident_references(incident, primary_sbd, violation_text):
-    """Save the incident, canonicalising SBDs along the way.
-
-    In addition to the obvious normalisation (upper/strip), the service
-    applies settings.SBD_DEFAULT_PREFIX to every digits-only token so
-    "@{0032}" and "@{TS0032}" end up stored as the same canonical value.
-    Violation text is rewritten in-place before saving, so what is kept
-    in the DB is the canonical form — template rendering, stats, and
-    candidate-detail lookups all stay consistent with what the user sees.
-
-    Returns a dict with metadata the caller may want to surface:
-      {
-        "primary_sbd_truncated": bool,
-        "mention_truncations":   set[str]  # raw token text that was cut
-      }
-    """
+    """Save incident + participants using quick_fixes-compatible parsing rules."""
     primary_sbd, primary_truncated = apply_default_prefix(primary_sbd)
 
-    if len(violation_text) > MAX_VIOLATION_TEXT_LEN:
-        violation_text = violation_text[:MAX_VIOLATION_TEXT_LEN]
+    text = (violation_text or "").strip()
+    if len(text) > MAX_VIOLATION_TEXT_LEN:
+        text = text[:MAX_VIOLATION_TEXT_LEN]
 
-    def _canon_token(match):
-        canonical, _ = apply_default_prefix(match.group(1))
-        if SBD_PATTERN.match(canonical):
-            return "@{" + canonical + "}"
-        return match.group(0)
-
-    violation_text = MENTION_TOKEN_PATTERN.sub(_canon_token, violation_text)
-
-    referenced_codes, truncated_originals = extract_sbd_codes(violation_text)
+    referenced_codes = extract_sbd_codes(text)
 
     ordered_codes = [primary_sbd] if primary_sbd else []
     for code in referenced_codes:
@@ -200,7 +155,7 @@ def sync_incident_references(incident, primary_sbd, violation_text):
 
     incident.reported_sbd = primary_sbd
     incident.reported_candidate = candidates.get(primary_sbd)
-    incident.violation_text = violation_text.strip()
+    incident.violation_text = text
     incident.save()
 
     incident.participants.all().delete()
@@ -222,5 +177,5 @@ def sync_incident_references(incident, primary_sbd, violation_text):
 
     return {
         "primary_sbd_truncated": primary_truncated,
-        "mention_truncations": truncated_originals,
+        "mention_truncations": set(),
     }

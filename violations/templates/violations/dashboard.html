@@ -13,40 +13,6 @@
         </div>
     </div>
 
-    <div class="composer-dock">
-        {% if can_post %}
-            <form method="post" action="{% url 'violations:create_incident' %}" enctype="multipart/form-data" class="composer-form row g-2 align-items-start">
-                {% csrf_token %}
-                <div class="col-12 col-md-2">
-                    <label class="form-label small mb-1" for="id_sbd">SBD</label>
-                    <input type="text" name="sbd" id="id_sbd" class="form-control" placeholder="TS0032" required>
-                </div>
-                <div class="col-12 col-md-6">
-                    <label class="form-label small mb-1" for="id_violation_text">Violation Content</label>
-                    <textarea name="violation_text" id="id_violation_text" class="form-control" rows="2" placeholder="Example: TS0032 exchanged messages with TS0030" required></textarea>
-                </div>
-                <div class="col-12 col-md-3">
-                    <label class="form-label small mb-1" for="id_evidence">Image/Video</label>
-                    <input type="file" name="evidence" id="id_evidence" class="form-control" accept="image/*,video/*">
-                </div>
-                <div class="col-12 col-md-1 d-grid">
-                    <label class="form-label small mb-1 d-none d-md-block">&nbsp;</label>
-                    <button class="btn btn-dark" type="submit">
-                        <i class="bi bi-send"></i>
-                    </button>
-                </div>
-                <div class="col-12">
-                    <p class="text-muted small mt-1 mb-0">
-                        If a violation message references another SBD, both candidates are automatically counted in statistics.
-                    </p>
-                </div>
-            </form>
-        {% else %}
-            <div class="alert alert-secondary mb-0">
-                This account can view data only. Posting/editing is allowed only for room admins and super admins.
-            </div>
-        {% endif %}
-    </div>
 </div>
 
 <div id="mention-suggest-tip" class="mention-suggest-tip" role="tooltip"></div>

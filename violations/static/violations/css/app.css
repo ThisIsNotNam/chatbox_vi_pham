@@ -222,7 +222,7 @@ body {
     height: auto;
     min-height: 0;
     max-height: none;
-    padding: 0.25rem 0.35rem calc(var(--composer-offset) + 0.5rem);
+    padding: 0.25rem 0.35rem calc(var(--composer-offset) + 1rem);
 }
 
 .composer-dock {
@@ -323,7 +323,13 @@ body {
 
 .stats-table thead th { background: #f1f5f3; white-space: nowrap; }
 
-.candidate-offcanvas { width: 66vw !important; max-width: 980px; }
+.candidate-offcanvas {
+    width: 66vw !important;
+    max-width: 980px;
+    top: 0;
+    height: 100dvh;
+    max-height: 100dvh;
+}
 
 .incident-mini { border: 1px solid rgba(0,0,0,0.08); border-radius: 0.75rem; background: #fff; }
 .detail-label  { font-size: 0.75rem; text-transform: uppercase; color: #6c757d; letter-spacing: 0.04em; }
@@ -587,7 +593,14 @@ body {
 }
 .markdown-body img:hover { opacity: 0.88; }
 
-.lg-backdrop { background: rgba(0,0,0,0.92); }
+.lg-backdrop {
+    background: rgba(0,0,0,0.92);
+    z-index: 2000 !important;
+}
+
+.lg-outer {
+    z-index: 2010 !important;
+}
 
 
 :root {
@@ -898,7 +911,7 @@ body {
 .incident-feed {
     height: auto !important;
     overflow-y: visible !important;
-    padding: 0 !important;
+    padding: 0.25rem 0.35rem calc(var(--composer-offset) + 1rem) !important;
 }
 
 .chat-text.plain-text,

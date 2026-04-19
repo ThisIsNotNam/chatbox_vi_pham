@@ -13,6 +13,7 @@ urlpatterns = [
     path("incidents/preview/", views.incident_preview, name="incident_preview"),
     path("incidents/upload-image/", views.upload_image, name="upload_image"),
     path("incidents/<int:pk>/edit/", views.edit_incident, name="edit_incident"),
+    path("incidents/<int:pk>/delete/", views.delete_incident, name="delete_incident"),
     path("incidents/<int:pk>/evidence/", views.incident_evidence, name="incident_evidence"),
     path("api/incidents/history/", views.incident_history, name="incident_history"),
     path("api/incidents/updates/", views.incident_updates, name="incident_updates"),

@@ -9,6 +9,14 @@ INCIDENT_PAGE_SIZE = 30
 INCIDENT_UPDATE_LIMIT = 80
 
 
+def can_delete_incidents(user):
+    if not getattr(user, "is_authenticated", False):
+        return False
+    if getattr(user, "is_superuser", False):
+        return True
+    return user.groups.filter(name__in=["super_admin", "room_admin"]).exists()
+
+
 def build_candidate_stats():
     latest_violation = Incident.objects.filter(
         participants__candidate=OuterRef("pk")
@@ -64,6 +72,7 @@ def render_incident_rows_html(incidents, user):
             "incidents": incidents,
             "editable_incident_ids": get_editable_incident_ids(incidents, user),
             "current_user_id": user.id if getattr(user, "is_authenticated", False) else None,
+            "can_delete_incidents": can_delete_incidents(user),
         },
     )
 

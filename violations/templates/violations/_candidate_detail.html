@@ -1,7 +1,7 @@
 {% load violations_extras %}
 <div class="candidate-detail-shell">
     {% if candidate %}
-        <div class="row g-3 mb-3">
+        <div class="row g-3 mt-0 mb-3">
             <div class="col-6">
                 <div class="detail-label">SBD</div>
                 <div class="detail-value">{{ candidate.sbd }}</div>
@@ -38,14 +38,19 @@
                 </button>
                 <small class="text-muted">{{ incident.created_at|date:"Y-m-d H:i" }}</small>
             </div>
-            <p class="mb-2">{{ incident.violation_text|highlight_ids }}</p>
+            <div class="mb-2 chat-text markdown-body">{{ incident.violation_text|render_violation:incident.is_markdown }}</div>
             {% if incident.evidence %}
                 {% if incident.evidence_is_image %}
-                    <img src="{% url 'violations:incident_evidence' incident.pk %}" class="img-fluid rounded evidence-guard" alt="Evidence" draggable="false">
+                    <img src="{% url 'violations:incident_evidence' incident.pk %}" class="incident-legacy-img evidence-guard" alt="Evidence" draggable="false" loading="lazy" data-lg-src="{% url 'violations:incident_evidence' incident.pk %}">
                 {% elif incident.evidence_is_video %}
-                    <video class="w-100 rounded evidence-guard" controls controlsList="nodownload noplaybackrate" disablePictureInPicture preload="metadata" oncontextmenu="return false">
-                        <source src="{% url 'violations:incident_evidence' incident.pk %}">
-                    </video>
+                    <div class="incident-video-wrap mt-2" data-video-src="{% url 'violations:incident_evidence' incident.pk %}">
+                        <video class="incident-video-thumb evidence-guard" preload="metadata" muted controlsList="nodownload noplaybackrate" disablePictureInPicture oncontextmenu="return false">
+                            <source src="{% url 'violations:incident_evidence' incident.pk %}">
+                        </video>
+                        <div class="video-play-overlay" aria-label="Play video">
+                            <i class="bi bi-play-circle-fill"></i>
+                        </div>
+                    </div>
                 {% endif %}
             {% endif %}
         </article>
