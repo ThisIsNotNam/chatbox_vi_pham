@@ -23,20 +23,27 @@ from .realtime import (
     get_editable_incident_ids,
     render_incident_rows_html,
 )
-from .services import normalize_sbd, sync_incident_references
+from .services import (
+    ROLE_LABELS,
+    ROLE_ROOM_ADMIN,
+    ROLE_SUPER_ADMIN,
+    ROLE_VIEWER,
+    normalize_sbd,
+    sync_incident_references,
+)
 from .ws_events import notify_live_update
 
 
 def is_super_admin(user):
     if not user.is_authenticated:
         return False
-    return user.is_superuser or user.groups.filter(name="super_admin").exists()
+    return user.is_superuser or user.groups.filter(name=ROLE_SUPER_ADMIN).exists()
 
 
 def is_room_admin(user):
     if not user.is_authenticated:
         return False
-    return user.groups.filter(name="room_admin").exists()
+    return user.groups.filter(name=ROLE_ROOM_ADMIN).exists()
 
 
 def can_post_message(user):
@@ -56,12 +63,12 @@ def get_user_room_name(user):
 
 def role_label(user):
     if is_super_admin(user):
-        return "Super Admin"
+        return ROLE_LABELS[ROLE_SUPER_ADMIN]
     if is_room_admin(user):
         room = get_user_room_name(user)
-        return f"Room Admin ({room})" if room else "Room Admin"
+        return f"{ROLE_LABELS[ROLE_ROOM_ADMIN]} ({room})" if room else ROLE_LABELS[ROLE_ROOM_ADMIN]
     if user.is_authenticated:
-        return "Viewer"
+        return ROLE_LABELS[ROLE_VIEWER]
     return "Guest Viewer"
 
 
