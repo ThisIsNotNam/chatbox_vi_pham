@@ -6,7 +6,7 @@ from django.utils import timezone
 
 
 class Candidate(models.Model):
-    sbd = models.CharField(max_length=20, unique=True)
+    sbd = models.CharField(max_length=9, unique=True)
     full_name = models.CharField(max_length=150)
     school = models.CharField(max_length=150)
     supervisor_teacher = models.CharField(max_length=150)
@@ -45,7 +45,7 @@ class RoomAdminProfile(models.Model):
 
 
 class Incident(models.Model):
-    reported_sbd = models.CharField(max_length=20)
+    reported_sbd = models.CharField(max_length=9, db_index=True)
     reported_candidate = models.ForeignKey(
         Candidate,
         on_delete=models.SET_NULL,
@@ -121,7 +121,7 @@ class IncidentParticipant(models.Model):
         blank=True,
         related_name="incident_links",
     )
-    sbd_snapshot = models.CharField(max_length=20)
+    sbd_snapshot = models.CharField(max_length=9, db_index=True)
     relation_type = models.CharField(max_length=20, choices=RELATION_CHOICES)
     created_at = models.DateTimeField(auto_now_add=True)
 

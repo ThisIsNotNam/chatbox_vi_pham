@@ -10,6 +10,8 @@
     <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link href="{% static 'vendor/bootstrap/css/bootstrap.min.css' %}" rel="stylesheet">
     <link href="{% static 'vendor/bootstrap-icons/css/bootstrap-icons.min.css' %}" rel="stylesheet">
+    <!-- LightGallery v2 -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/lightgallery/2.8.3/css/lightgallery-bundle.min.css">
     <link href="{% static 'violations/css/app.css' %}" rel="stylesheet">
     {% block extra_head %}{% endblock %}
 </head>
@@ -28,7 +30,10 @@
                     <span class="badge rounded-pill text-bg-dark">
                         <i class="bi bi-person-circle me-1"></i>{{ user.username }}
                     </span>
-                    <a href="{% url 'violations:logout' %}" class="btn btn-outline-secondary btn-sm">Logout</a>
+                    <form method="post" action="{% url 'violations:logout' %}" class="d-inline">
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn-outline-secondary btn-sm">Logout</button>
+                    </form>
                 {% else %}
                     <a href="{% url 'violations:login' %}" class="btn btn-outline-dark btn-sm">Admin Login</a>
                 {% endif %}
@@ -36,16 +41,13 @@
         </div>
     </nav>
 
-    {% if messages %}
-        <div class="toast-container position-fixed top-0 end-0 p-3 app-toast-container">
+    <div class="toast-container position-fixed top-0 end-0 p-3 app-toast-container">
+        {% if messages %}
             {% for message in messages %}
                 <div class="toast border-0 app-toast
                     {% if message.tags == 'error' %}text-bg-danger{% elif message.tags == 'success' %}text-bg-success{% elif message.tags == 'warning' %}text-bg-warning{% else %}text-bg-dark{% endif %}"
-                    role="alert"
-                    aria-live="assertive"
-                    aria-atomic="true"
-                    data-bs-autohide="true"
-                    data-bs-delay="3500">
+                    role="alert" aria-live="assertive" aria-atomic="true"
+                    data-bs-autohide="true" data-bs-delay="3500">
                     <div class="toast-header">
                         <strong class="me-auto">Notification</strong>
                         <small class="text-muted">just now</small>
@@ -54,20 +56,25 @@
                     <div class="toast-body">{{ message }}</div>
                 </div>
             {% endfor %}
-        </div>
-    {% endif %}
+        {% endif %}
+    </div>
 
     <main class="container-fluid py-4 px-3 px-md-4">
         {% block content %}{% endblock %}
     </main>
 
     <script src="{% static 'vendor/bootstrap/js/bootstrap.bundle.min.js' %}"></script>
+    <!-- LightGallery v2 core + plugins -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/lightgallery/2.8.3/lightgallery.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/lightgallery/2.8.3/plugins/zoom/lg-zoom.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/lightgallery/2.8.3/plugins/video/lg-video.umd.min.js"></script>
+    <!-- marked.js for client-side markdown preview -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/marked/9.1.6/marked.min.js"></script>
     <script src="{% static 'violations/js/app.js' %}"></script>
     <script>
         document.addEventListener("DOMContentLoaded", function () {
             document.querySelectorAll(".app-toast").forEach(function (el) {
-                const toast = new bootstrap.Toast(el);
-                toast.show();
+                new bootstrap.Toast(el).show();
             });
         });
     </script>
